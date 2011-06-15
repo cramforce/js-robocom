@@ -81,18 +81,41 @@ Game.prototype.isFirstStep = function() {
   return this._step === 1;
 };
 
-Game.prototype.nextTick = function() {
+Game.prototype.nextTick = function(cb) {
   this._step++;
 
   if (this.isFirstStep()) {
     this._spawnInitialRobots();
-    return;
+    return cb();
   }
 
-  var self = this;
+  var i = 0;
+  var robots = this.getRobots();
+  function loop() {
+    var robot = robots[i++];
+    if (robot) {
+      robot.nextTick(function() {
+        loop();
+      });
+    } else {
+      cb();
+    }
+  }
+  loop();
+
+  // Parallel Execution
+  /*var self = this;
+  var count = 0;
+  var ret = 0;
   this.getRobots().forEach(function(robot) {
-    robot.nextTick();
-  });
+    count++;
+    robot.nextTick(function() {
+      ret++;
+      if(ret === count) {
+        cb();
+      }
+    });
+  });*/
 };
 
 Game.prototype._spawnInitialRobots = function() {

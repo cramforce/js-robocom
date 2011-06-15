@@ -26,9 +26,13 @@ $(function() {
 
     var interval;
     function continueGame() {
-      interval = setInterval(function() {
-        game.nextTick();
-      }, TIMEOUT);
+      game.nextTick(function() {
+        if(TIMEOUT) {
+          setTimeout(continueGame, TIMEOUT);
+        } else {
+          continueGame();
+        }
+      });
     }
 
 

@@ -40,14 +40,16 @@ var instructions = {
         return;
       }
 
-      var sourceProgram = robot._code[args[0]];
+      /*var sourceProgram = robot._code[args[0]];
       otherRobot._code = $.extend(true, {}, otherRobot._code);
 
       var destProgram = {};
       otherRobot._code[otherRobot._currentProgram] = destProgram;
       for (var key in sourceProgram) {
         destProgram[key] = sourceProgram[key];
-      }
+      }*/
+      otherRobot._currentProgram = args[0]
+      otherRobot._code = robot._code;
 
       otherRobot._currentArgs = [];
       otherRobot._currentInstruction = 'init';

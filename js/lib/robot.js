@@ -98,56 +98,67 @@ Robot._getCallbackName = function(instruction) {
   return 'after' + firstLetter.toUpperCase() + remainingLetters;
 };
 
-Robot.prototype.nextTick = function() {
-  if (this._remainingCycles > 0) {
-    this._remainingCycles--;
+Robot.prototype.nextTick = function(afterTick) {
+  var self = this
+  if (self._remainingCycles > 0) {
+    self._remainingCycles--;
+    setTimeout(afterTick);
     return;
   }
 
-  var executeFn = instructions[this._currentInstruction].execute;
-  var resultArgs = executeFn.call({}, this._game, this, this._currentArgs);
+  var executeFn = instructions[self._currentInstruction].execute;
+  var resultArgs = executeFn.call({}, self._game, self, self._currentArgs);
   if (resultArgs) {
     resultArgs = [].concat(resultArgs);
   }
 
-  var callbackName = Robot._getCallbackName(this._currentInstruction);
-  var callbackFn = this._code[this._currentProgram][callbackName];
+  var callbackName = Robot._getCallbackName(self._currentInstruction);
+  var caller = self._code;
+  /*var callbackFn = self._code[self._currentProgram][callbackName];
 
   if (!callbackFn) {
     console.log('missing callback: ' + callbackName);
-    this._commitSuicide();
+    self._commitSuicide();
     return;
   }
 
-  var nextArgs = callbackFn.apply({}, resultArgs || []);
-  if (!nextArgs) {
-    console.log('emtpy method: ' + callbackName);
-    this._commitSuicide();
-    return;
-  }
-  var nextInstruction = nextArgs.shift();
+  var nextArgs = callbackFn.apply({}, resultArgs || []);*/
+  caller(self._currentProgram, callbackName, resultArgs, function(err, nextArgs) {
+    if (err) {
+      console.log('Error ' + err);
+      self._commitSuicide();
+      return afterTick();
+    }
+    if (!nextArgs) {
+      console.log('emtpy method: ' + callbackName);
+      self._commitSuicide();
+      return afterTick();
+    }
+    var nextInstruction = nextArgs.shift();
 
-  if (!(nextInstruction in instructions)) {
-    console.log('unknown instruction: ' + nextInstruction);
-    this._commitSuicide();
-    return;
-  }
+    if (!(nextInstruction in instructions)) {
+      console.log('unknown instruction: ' + nextInstruction);
+      self._commitSuicide();
+      return afterTick();
+    }
 
-  var costs = instructions[nextInstruction].costs;
-  if (typeof costs === 'function') {
-    costs = costs.call({}, this._game, this);
-  }
+    var costs = instructions[nextInstruction].costs;
+    if (typeof costs === 'function') {
+      costs = costs.call({}, self._game, self);
+    }
 
-  if (costs instanceof Error) {
-    console.log('costs error: ' + costs.message);
-    this._commitSuicide();
-    return;
-  }
+    if (costs instanceof Error) {
+      console.log('costs error: ' + costs.message);
+      self._commitSuicide();
+      return afterTick();
+    }
 
-  this._remainingCycles = costs;
-  this._currentInstruction = nextInstruction;
-  this._currentArgs = nextArgs;
-  //console.log(this._currentInstruction, this._currentArgs);
+    self._remainingCycles = costs;
+    self._currentInstruction = nextInstruction;
+    self._currentArgs = nextArgs;
+    return afterTick();
+  })
+  //console.log(self._currentInstruction, self._currentArgs);
 };
 
 Robot.prototype._commitSuicide = function() {
